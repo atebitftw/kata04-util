@@ -9,6 +9,3 @@ environment:
 dependencies:
   http: "^0.11.3+2"
   logging: "^0.11.2"
-
-dev_dependencies:
-  test: '>=0.12.0 <0.13.0'

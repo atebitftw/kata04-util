@@ -7,6 +7,8 @@ library kata.util.web;
 import 'package:http/http.dart' as http;
 import 'dart:async';
 import 'dart:convert';
+import 'package:logging/logging.dart';
 
 part 'src/web.dart';
 
+final Logger _l = new Logger("kata.util");

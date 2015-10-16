@@ -4,6 +4,9 @@
 /// This library exposes all other libraries in kata.util, or you can just
 /// import each library individually.
 library kata.util;
+import 'package:logging/logging.dart';
 
 export 'kata_util_web.dart';
 export 'kata_util_data.dart';
+
+final Logger _l = new Logger("kata.util");
