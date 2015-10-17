@@ -22,8 +22,11 @@ const INVALID_QUERY_NAME = 'Query name not recognized.';
 // pre-defined queries...
 const SMALLEST_SPREAD = "smallest_spread";
 
-/// Performs a predefined query and returns 0 if the query succeeded or 1 if the query encountered a problem it couldn't
-/// deal with.
+/// Performs a predefined query and returns a JSON format result.
+///
+/// If there is an error during processing, the JSON result will contain the error message in the format:
+///
+///     {error: error_message}
 Map query(String data, String queryName, List<String> cols, List<String> display,
           {bool coerce: false, bool ignoreLast: false, bool strict: false}){
 
