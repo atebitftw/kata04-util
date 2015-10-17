@@ -71,5 +71,5 @@ class ColumnHeaderData
 
   }
 
-  @override toString() => '${name}(${index})';
+  @override toString() => name == '(anon)' ? '(${index})' : '${name}';
 }

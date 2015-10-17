@@ -1,6 +1,6 @@
 name: kata_util
 description: A starting point for Dart libraries or applications.
-version: 0.0.1
+version: 0.0.2
 author: John Evans <prujohn@gmail.com>
 
 environment:

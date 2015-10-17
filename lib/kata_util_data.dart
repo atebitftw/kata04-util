@@ -13,12 +13,18 @@ part 'src/row_data.dart';
 
 final Logger _l = new Logger("kata.util.data");
 
+const NO_DATA_FOUND = 'No data found';
+const NOT_ENOUGH_DATA = 'Only found header row or not enough data to analyze.';
+const DATA_FORMATTING_ERROR = '[Strict Mode] Query failed because a problem was found in the data or data formatting.';
+const EXPECTED_2_COLUMNS = 'Query expects exactly 2 columns to be provided.';
+const INVALID_QUERY_NAME = 'Query name not recognized.';
+
 // pre-defined queries...
 const SMALLEST_SPREAD = "smallest_spread";
 
 /// Performs a predefined query and returns 0 if the query succeeded or 1 if the query encountered a problem it couldn't
 /// deal with.
-int query(String data, String queryName, List<String> cols, List<String> display,
+Map query(String data, String queryName, List<String> cols, List<String> display,
           {bool coerce: false, bool ignoreLast: false, bool strict: false}){
 
   if (coerce && strict){
@@ -31,15 +37,13 @@ int query(String data, String queryName, List<String> cols, List<String> display
   var skipCount = 0;
 
   if(data == null || data.isEmpty){
-    _l.severe("No data found.");
-    return 1;
+    return _error(NO_DATA_FOUND);
   }
 
   final rows = data.split('\n');
 
   if (rows.length < 2){
-    _l.severe('Only found header row or not enough data to analyze.');
-    return 1;
+    return _error(NOT_ENOUGH_DATA);
   }
 
   final columnHeaders = ColumnHeaderData._parseHeader(rows[0]);
@@ -60,9 +64,7 @@ int query(String data, String queryName, List<String> cols, List<String> display
     final row = new RowData(rawRow, index++, columnHeaders);
 
     if (strict && row.skipped){
-      _l.severe("[Strict Mode] Query failed because a problem was found in the data or data formatting. "
-        "  Reason: ${row.skipReason}");
-      return 1;
+      return _error("$DATA_FORMATTING_ERROR Reason: ${row.skipReason}");
     }
 
     if (row.skipped){
@@ -70,7 +72,6 @@ int query(String data, String queryName, List<String> cols, List<String> display
     }else{
       rowData.add(row);
     }
-
   }
 
   if (rowData.length < rows.length){
@@ -83,36 +84,32 @@ int query(String data, String queryName, List<String> cols, List<String> display
     case SMALLEST_SPREAD:
       return _smallest_spread_query(columnHeaders, rowData, cols, display, coerce, strict);
     default:
-      _l.severe('Query name not recognized.');
-      return 1;
+      return _error(INVALID_QUERY_NAME);
   }
 
-  return 0;
+  return {};
 
 }
 
-int _smallest_spread_query(List<ColumnHeaderData> columnData, List<RowData> rows, List<String> cols, List<String> disp,
+Map _smallest_spread_query(List<ColumnHeaderData> columnData, List<RowData> rows, List<String> cols, List<String> disp,
                            bool coerce, bool strict){
 
   // some of this work might be factored out if more queries were added, but since we are only supporting one query
   // at the moment...
 
   if (cols.length != 2){
-    _l.severe("smalled_spread query expects exactly 2 columns to be provided.");
-    return 1;
+    return _error(EXPECTED_2_COLUMNS);
   }
 
   final c1 = _getColumn(columnData, cols[0]);
   final c2 = _getColumn(columnData, cols[1]);
 
   if (c1 == null){
-    _l.severe("Column '${cols[0]}' not found by name or index.");
-    return 1;
+    return _error("Column '${cols[0]}' not found by name or index.");
   }
 
   if (c2 == null){
-    _l.severe("Column '${cols[1]}' not found by name or index.");
-    return 1;
+    return _error("Column '${cols[1]}' not found by name or index.");
   }
 
   _l.fine("Found columns ${c1} and ${c2}");
@@ -123,14 +120,13 @@ int _smallest_spread_query(List<ColumnHeaderData> columnData, List<RowData> rows
 
     final num1 = _asNum(row.elements[c1.index], coerce);
     if (num1 == null){
-      _l.severe("Unable to convert element ${row.elements[c1.index]} into a numeric at row ${row.rowIndex}, column ${c1}");
-      return 1;
+      return _error("Unable to convert element ${row.elements[c1.index]} into a numeric at row ${row.rowIndex}, column ${c1}");
+      
     }
 
     final num2 = _asNum(row.elements[c2.index], coerce);
     if (num2 == null){
-      _l.severe("Unable to convert element ${row.elements[c2.index]} into a numeric at row ${row.rowIndex}, column ${c2}");
-      return 1;
+      return _error("Unable to convert element ${row.elements[c2.index]} into a numeric at row ${row.rowIndex}, column ${c2}");
     }
 
     row._rowResult = (num1 - num2).abs();
@@ -145,28 +141,27 @@ int _smallest_spread_query(List<ColumnHeaderData> columnData, List<RowData> rows
     }
 
   }
-
-  print("Query Result:");
-  print(_whitespace('-', 40));
-
+  
+  Map results = {};
+  
   var sb = new StringBuffer();
   if (disp.isEmpty){
-    sb.writeln("Row ${winner.rowIndex}\tResult: ${winner._rowResult}");
+    results['result'] = winner._rowResult;
   }else{
 
     for(final d in disp){
       final c = _getColumn(columnData, d);
       if (c == null){
-        _l.severe("Display column '${d}' not found by name or index.");
-        return 1;
+        return _error("Display column '${d}' not found by name or index.");
       }
+      results[c.toString()] = winner.elements[c.index];
 
-      sb.write('${winner.elements[c.index]}\t');
     }
-    sb.writeln('Result: ${winner._rowResult}');
+    results['result'] = winner._rowResult;
+
   }
-  print(sb.toString());
-  return 0;
+  
+  return results;
 }
 
 
@@ -280,3 +275,5 @@ String _whitespace(String char, int howMany){
 
   return sb.toString();
 }
+
+Map _error(String message) => {'error': '${message}'};
