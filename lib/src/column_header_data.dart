@@ -12,7 +12,8 @@ class ColumnHeaderData
 
   ColumnHeaderData.anonymous(this.index, this.start, this.end) : this.name = '(anon)';
 
-  // Parses raw header row into ColumnHeaderData objects.
+  // Parses raw header row into ColumnHeaderData objects.  Column header is assumed to be
+  // well formed.  No sanity checks in this version.
   static List<ColumnHeaderData> _parseHeader(String headerRow){
     final headers = new List<ColumnHeaderData>();
     var cIndex = 0;
@@ -69,4 +70,6 @@ class ColumnHeaderData
     return headers;
 
   }
+
+  @override toString() => '${name}(${index})';
 }

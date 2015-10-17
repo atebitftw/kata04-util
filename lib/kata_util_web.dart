@@ -11,4 +11,4 @@ import 'package:logging/logging.dart';
 
 part 'src/web.dart';
 
-final Logger _l = new Logger("kata.util");
+final Logger _l = new Logger("kata.util.web");

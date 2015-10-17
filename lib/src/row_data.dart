@@ -7,6 +7,7 @@ part of kata.util.data;
 class RowData
 {
   String rawRow;
+  num _rowResult; //represents a computation result on the row
   final int rowIndex;
   final Map<int, String> elements = new Map<int, String>();
   bool _skipped = false;
@@ -16,8 +17,8 @@ class RowData
   String get skipReason => _skipReason;
 
 
-  RowData(this.rawRow, this.rowIndex, List<ColumnHeaderData> columns){
-    _parseRow(columns);
+  RowData(this.rawRow, this.rowIndex, List<ColumnHeaderData> columns, [bool strict = false]){
+    _parseRow(columns, strict);
   }
 
   RowData.skip(this.rawRow, this.rowIndex, String reason){
@@ -25,7 +26,7 @@ class RowData
     _skipReason = reason;
   }
 
-  void _parseRow(List<ColumnHeaderData> columns){
+  void _parseRow(List<ColumnHeaderData> columns, bool strict){
     var corruptElement = 0;
     if (rawRow == null || rawRow.trim().isEmpty){
       _skipReason = "Skipping row $rowIndex because it is empty or null.";
@@ -46,12 +47,22 @@ class RowData
       if (chd.start < 0 || chd.end < 0 || chd.start > rawRow.length || chd.end > rawRow.length){
         _warn("No data found for column ${chd.name} (index ${chd.index}) because row ${rowIndex} has no data "
           "within column boundary");
+        if (strict){
+          _skipped = true;
+          _skipReason = "Strict mode expects columns boundaries to be within row boundary";
+          return;
+        }
         continue;
       }
 
       // detect column misalignment, try to compensate... the assumption is that the last char in the column boundary
       // should be whitespace, if not then the next column is probably misaligned.
       if (columns.last != chd && rawRow[chd.end] != ' '){
+        if (strict){
+          _skipped = true;
+          _skipReason = "Strict mode requires all data to be properly aligned within column boundaries.";
+          return;
+        }
 
         while(rawRow[chd.end + adjust] != ' '){
           adjust--;
@@ -59,8 +70,9 @@ class RowData
             //exceeded the starting boundary of this column so...
             //bail out and warn again that adjustment failed.
             adjust = 0;
-            _warn("In row ${rowIndex}, Detected but unable to align data that exceeds column boundary for"
+            _l.warning("In row ${rowIndex}, Detected but unable to align data that exceeds column boundary for"
             " column ${chd.name}.  Data may be corrupt at this column.");
+
             corruptElement++;
             elements[chd.index] = rawRow.substring(chd.start, chd.end + 1).trim();
             break;
